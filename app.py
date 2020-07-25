@@ -19,19 +19,20 @@ moving_left = False
 vertical_momentum = 0
 air_timer = 0
 
-game_map = [['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
-            ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
-            ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
-            ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
-            ['0', '0', '0', '0', '0', '0', '0', '2', '2', '2', '2', '2', '0', '0', '0', '0', '0', '0', '0'],
-            ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
-            ['2', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '2', '2'],
-            ['1', '1', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '1', '1'],
-            ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'],
-            ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'],
-            ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'],
-            ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'],
-            ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1']]
+true_scroll = [0,0]
+
+# read map file
+def load_map(path):
+    f = open(path + '.txt', 'r')
+    data = f.read()
+    f.close()
+    data = data.split('\n')
+    game_map = []
+    for row in data:
+        game_map.append(list(row))
+    return game_map
+
+game_map = load_map('map')
 
 grass_img = pygame.image.load('grass.png')
 dirt_img = pygame.image.load('dirt.png')
@@ -40,6 +41,8 @@ player_img = pygame.image.load('player.png').convert()
 player_img.set_colorkey((255, 255, 255))
 
 player_rect = pygame.Rect(100, 100, 5, 13)
+
+background_objects = [[0.25,[120,10,70,400]],[0.25,[280,30,40,400]],[0.5,[30,40,40,400]],[0.5,[130,90,100,400]],[0.5,[300,80,120,400]]]
 
 
 def collision_test(rect, tiles):
@@ -76,15 +79,33 @@ def move(rect, movement, tiles):
 while True:  # game loop
     display.fill((146, 244, 255))  # clear screen by filling it with blue
 
+    # lock the scroll to player loation and center to the 300 display surface
+    true_scroll[0] += (player_rect.x - true_scroll[0] - 152) / 20
+    true_scroll[1] += (player_rect.y - true_scroll[1] - 106) / 20
+    scroll = true_scroll.copy()
+    scroll[0] = int(scroll[0])
+    scroll[1] = int(scroll[1])
+    # draw background object with parallex- meaning we
+    pygame.draw.rect(display, (7, 80, 75), pygame.Rect(0, 120, 300, 80))
+    for background_object in background_objects:
+        obj_rect = pygame.Rect(background_object[1][0] - scroll[0] * background_object[0],
+                               background_object[1][1] - scroll[1] * background_object[0], background_object[1][2],
+                               background_object[1][3])
+        # draw different colors for object based on multiplier
+        if background_object[0] == 0.5:
+            pygame.draw.rect(display, (14, 222, 150), obj_rect)
+        else:
+            pygame.draw.rect(display, (9, 91, 85), obj_rect)
+
     tile_rects = []
     y = 0
     for layer in game_map:
         x = 0
         for tile in layer:
             if tile == '1':
-                display.blit(dirt_img, (x * 16, y * 16))
+                display.blit(dirt_img, (x * 16 - scroll[0], y * 16 - scroll[1]))
             if tile == '2':
-                display.blit(grass_img, (x * 16, y * 16))
+                display.blit(grass_img, (x * 16 - scroll[0], y * 16 - scroll[1]))
             if tile != '0':
                 tile_rects.append(pygame.Rect(x * 16, y * 16, 16, 16))
             x += 1
@@ -99,7 +120,7 @@ while True:  # game loop
     vertical_momentum += 0.2
     if vertical_momentum > 3:
         vertical_momentum = 3
-
+    # Move function with collisions
     player_rect, collisions = move(player_rect, player_movement, tile_rects)
 
     if collisions['bottom'] == True:
@@ -108,7 +129,7 @@ while True:  # game loop
     else:
         air_timer += 1
 
-    display.blit(player_img, (player_rect.x, player_rect.y))
+    display.blit(player_img, (player_rect.x - scroll[0], player_rect.y - scroll[1]))
 
     for event in pygame.event.get():  # event loop
         if event.type == QUIT:
