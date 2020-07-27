@@ -32,13 +32,51 @@ def load_map(path):
         game_map.append(list(row))
     return game_map
 
+
+global animation_frames
+animation_frames = {}
+
+def load_animation(path, frame_duration):
+    global animation_frames
+    animation_name = path.split('/')[-1]
+    print(animation_name)
+    # loop to to show image shows in relevant frame (in a 60fps)
+    animation_frame_data = []
+    n = 0
+    for frame in frame_duration:
+        animation_frame_id = animation_name + '_' + str(n)
+        img_loc = path + '/' + animation_frame_id + '.png'
+        animation_image = pygame.image.load(img_loc).convert()
+        animation_image.set_colorkey((255, 255, 255))
+        # arrange the frames into global variable
+        animation_frames[animation_frame_id] = animation_image.copy()
+        for i in range(frame):
+            animation_frame_data.append(animation_frame_id)
+
+        n += 1
+    return animation_frame_data
+
+
+def change_action(action_var, frame, new_value):
+    if action_var != new_value:
+        action_var = new_value
+        frame = 0
+    return action_var, frame
+
+
+animation_database = {}
+
+animation_database['run'] = load_animation('player_animation/run', [7, 7])
+animation_database['idle'] = load_animation('player_animation/idle', [7, 7, 40])
+
+player_action = 'idle'
+player_frame = 0
+player_flip = False
+
 game_map = load_map('map')
 
 grass_img = pygame.image.load('grass.png')
 dirt_img = pygame.image.load('dirt.png')
-
-player_img = pygame.image.load('player.png').convert()
-player_img.set_colorkey((255, 255, 255))
 
 player_rect = pygame.Rect(100, 100, 5, 13)
 
@@ -120,6 +158,16 @@ while True:  # game loop
     vertical_momentum += 0.2
     if vertical_momentum > 3:
         vertical_momentum = 3
+    # if moving on the X axis, we change the image to 'run'
+    if player_movement[0] > 0:
+        player_action, player_frame = change_action(player_action, player_frame, 'run')
+        player_flip = False
+    if player_movement[0] == 0:
+        player_action, player_frame = change_action(player_action, player_frame, 'idle')
+    if player_movement[0] < 0:
+        player_action, player_frame = change_action(player_action, player_frame, 'run')
+        player_flip = True
+
     # Move function with collisions
     player_rect, collisions = move(player_rect, player_movement, tile_rects)
 
@@ -129,7 +177,13 @@ while True:  # game loop
     else:
         air_timer += 1
 
-    display.blit(player_img, (player_rect.x - scroll[0], player_rect.y - scroll[1]))
+    # Get the correct image of player according to the action we're in, and the frame we're at
+    player_frame += 1
+    if player_frame >= len(animation_database[player_action]):
+        player_frame = 0
+    player_img_id = animation_database[player_action][player_frame]
+    player_img = animation_frames[player_img_id]
+    display.blit(pygame.transform.flip(player_img, player_flip, False), (player_rect.x - scroll[0], player_rect.y - scroll[1]))
 
     for event in pygame.event.get():  # event loop
         if event.type == QUIT:
