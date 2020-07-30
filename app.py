@@ -1,10 +1,11 @@
-import pygame, sys
+import pygame, sys, random
 
 clock = pygame.time.Clock()
 
 from pygame.locals import *
-
+pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.init()  # initiates pygame
+pygame.mixer.set_num_channels(64)
 
 pygame.display.set_caption('Pygame Platformer')
 
@@ -73,10 +74,22 @@ player_action = 'idle'
 player_frame = 0
 player_flip = False
 
+grass_sound_timer = 0
+
 game_map = load_map('map')
 
 grass_img = pygame.image.load('grass.png')
 dirt_img = pygame.image.load('dirt.png')
+
+jump_sound = pygame.mixer.Sound('jump.wav')
+grass_sound = [pygame.mixer.Sound('grass_0.wav'),  pygame.mixer.Sound('grass_1.wav')]
+grass_sound[0].set_volume(0.4)
+grass_sound[1].set_volume(0.4)
+
+
+pygame.mixer.music.load('music.wav')
+pygame.mixer.music.play(-1)
+
 
 player_rect = pygame.Rect(100, 100, 5, 13)
 
@@ -117,6 +130,8 @@ def move(rect, movement, tiles):
 while True:  # game loop
     display.fill((146, 244, 255))  # clear screen by filling it with blue
 
+    if grass_sound_timer > 0:
+        grass_sound_timer -= 1
     # lock the scroll to player loation and center to the 300 display surface
     true_scroll[0] += (player_rect.x - true_scroll[0] - 152) / 20
     true_scroll[1] += (player_rect.y - true_scroll[1] - 106) / 20
@@ -174,6 +189,12 @@ while True:  # game loop
     if collisions['bottom'] == True:
         air_timer = 0
         vertical_momentum = 0
+        # check for grass sound
+        if player_movement[0] != 0:
+           if grass_sound_timer == 0:
+               grass_sound_timer = 30
+               random.choice(grass_sound).play()
+
     else:
         air_timer += 1
 
@@ -190,12 +211,17 @@ while True:  # game loop
             pygame.quit()
             sys.exit()
         if event.type == KEYDOWN:
+            if event.key == K_w:
+                pygame.mixer.music.fadeout(1000)
+            if event.key == K_e:
+                pygame.mixer.music.play(-1)
             if event.key == K_RIGHT:
                 moving_right = True
             if event.key == K_LEFT:
                 moving_left = True
             if event.key == K_UP:
                 if air_timer < 6:
+                    jump_sound.play()
                     vertical_momentum = -5
         if event.type == KEYUP:
             if event.key == K_RIGHT:
