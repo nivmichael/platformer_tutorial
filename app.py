@@ -82,12 +82,14 @@ grass_img = pygame.image.load('grass.png')
 dirt_img = pygame.image.load('dirt.png')
 
 jump_sound = pygame.mixer.Sound('jump.wav')
+jump_sound.set_volume(0.2)
 grass_sound = [pygame.mixer.Sound('grass_0.wav'),  pygame.mixer.Sound('grass_1.wav')]
-grass_sound[0].set_volume(0.4)
-grass_sound[1].set_volume(0.4)
+grass_sound[0].set_volume(0.2)
+grass_sound[1].set_volume(0.2)
 
 
 pygame.mixer.music.load('music.wav')
+pygame.mixer.music.set_volume(0.5)
 pygame.mixer.music.play(-1)
 
 
